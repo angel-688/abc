@@ -14,6 +14,13 @@
             document.documentElement.classList.add(className);
         }));
     }
+    function functions_getHash() {
+        if (location.hash) return location.hash.replace("#", "");
+    }
+    function setHash(hash) {
+        hash = hash ? `#${hash}` : window.location.href.split("#")[0];
+        history.pushState("", "", hash);
+    }
     let _slideUp = (target, duration = 500, showmore = 0) => {
         if (!target.classList.contains("_slide")) {
             target.classList.add("_slide");
@@ -229,6 +236,99 @@
             }
         }
     }
+    function tabs() {
+        const tabs = document.querySelectorAll("[data-tabs]");
+        let tabsActiveHash = [];
+        if (tabs.length > 0) {
+            const hash = functions_getHash();
+            if (hash && hash.startsWith("tab-")) tabsActiveHash = hash.replace("tab-", "").split("-");
+            tabs.forEach(((tabsBlock, index) => {
+                tabsBlock.classList.add("_tab-init");
+                tabsBlock.setAttribute("data-tabs-index", index);
+                tabsBlock.addEventListener("click", setTabsAction);
+                initTabs(tabsBlock);
+            }));
+            let mdQueriesArray = dataMediaQueries(tabs, "tabs");
+            if (mdQueriesArray && mdQueriesArray.length) mdQueriesArray.forEach((mdQueriesItem => {
+                mdQueriesItem.matchMedia.addEventListener("change", (function() {
+                    setTitlePosition(mdQueriesItem.itemsArray, mdQueriesItem.matchMedia);
+                }));
+                setTitlePosition(mdQueriesItem.itemsArray, mdQueriesItem.matchMedia);
+            }));
+        }
+        function setTitlePosition(tabsMediaArray, matchMedia) {
+            tabsMediaArray.forEach((tabsMediaItem => {
+                tabsMediaItem = tabsMediaItem.item;
+                let tabsTitles = tabsMediaItem.querySelector("[data-tabs-titles]");
+                let tabsTitleItems = tabsMediaItem.querySelectorAll("[data-tabs-title]");
+                let tabsContent = tabsMediaItem.querySelector("[data-tabs-body]");
+                let tabsContentItems = tabsMediaItem.querySelectorAll("[data-tabs-item]");
+                tabsTitleItems = Array.from(tabsTitleItems).filter((item => item.closest("[data-tabs]") === tabsMediaItem));
+                tabsContentItems = Array.from(tabsContentItems).filter((item => item.closest("[data-tabs]") === tabsMediaItem));
+                tabsContentItems.forEach(((tabsContentItem, index) => {
+                    if (matchMedia.matches) {
+                        tabsContent.append(tabsTitleItems[index]);
+                        tabsContent.append(tabsContentItem);
+                        tabsMediaItem.classList.add("_tab-spoller");
+                    } else {
+                        tabsTitles.append(tabsTitleItems[index]);
+                        tabsMediaItem.classList.remove("_tab-spoller");
+                    }
+                }));
+            }));
+        }
+        function initTabs(tabsBlock) {
+            let tabsTitles = tabsBlock.querySelectorAll("[data-tabs-titles]>*");
+            let tabsContent = tabsBlock.querySelectorAll("[data-tabs-body]>*");
+            const tabsBlockIndex = tabsBlock.dataset.tabsIndex;
+            const tabsActiveHashBlock = tabsActiveHash[0] == tabsBlockIndex;
+            if (tabsActiveHashBlock) {
+                const tabsActiveTitle = tabsBlock.querySelector("[data-tabs-titles]>._tab-active");
+                tabsActiveTitle ? tabsActiveTitle.classList.remove("_tab-active") : null;
+            }
+            if (tabsContent.length) tabsContent.forEach(((tabsContentItem, index) => {
+                tabsTitles[index].setAttribute("data-tabs-title", "");
+                tabsContentItem.setAttribute("data-tabs-item", "");
+                if (tabsActiveHashBlock && index == tabsActiveHash[1]) tabsTitles[index].classList.add("_tab-active");
+                tabsContentItem.hidden = !tabsTitles[index].classList.contains("_tab-active");
+            }));
+        }
+        function setTabsStatus(tabsBlock) {
+            let tabsTitles = tabsBlock.querySelectorAll("[data-tabs-title]");
+            let tabsContent = tabsBlock.querySelectorAll("[data-tabs-item]");
+            const tabsBlockIndex = tabsBlock.dataset.tabsIndex;
+            function isTabsAnamate(tabsBlock) {
+                if (tabsBlock.hasAttribute("data-tabs-animate")) return tabsBlock.dataset.tabsAnimate > 0 ? Number(tabsBlock.dataset.tabsAnimate) : 500;
+            }
+            const tabsBlockAnimate = isTabsAnamate(tabsBlock);
+            if (tabsContent.length > 0) {
+                const isHash = tabsBlock.hasAttribute("data-tabs-hash");
+                tabsContent = Array.from(tabsContent).filter((item => item.closest("[data-tabs]") === tabsBlock));
+                tabsTitles = Array.from(tabsTitles).filter((item => item.closest("[data-tabs]") === tabsBlock));
+                tabsContent.forEach(((tabsContentItem, index) => {
+                    if (tabsTitles[index].classList.contains("_tab-active")) {
+                        if (tabsBlockAnimate) _slideDown(tabsContentItem, tabsBlockAnimate); else tabsContentItem.hidden = false;
+                        if (isHash && !tabsContentItem.closest(".popup")) setHash(`tab-${tabsBlockIndex}-${index}`);
+                    } else if (tabsBlockAnimate) _slideUp(tabsContentItem, tabsBlockAnimate); else tabsContentItem.hidden = true;
+                }));
+            }
+        }
+        function setTabsAction(e) {
+            const el = e.target;
+            if (el.closest("[data-tabs-title]")) {
+                const tabTitle = el.closest("[data-tabs-title]");
+                const tabsBlock = tabTitle.closest("[data-tabs]");
+                if (!tabTitle.classList.contains("_tab-active") && !tabsBlock.querySelector("._slide")) {
+                    let tabActiveTitle = tabsBlock.querySelectorAll("[data-tabs-title]._tab-active");
+                    tabActiveTitle.length ? tabActiveTitle = Array.from(tabActiveTitle).filter((item => item.closest("[data-tabs]") === tabsBlock)) : null;
+                    tabActiveTitle.length ? tabActiveTitle[0].classList.remove("_tab-active") : null;
+                    tabTitle.classList.add("_tab-active");
+                    setTabsStatus(tabsBlock);
+                }
+                e.preventDefault();
+            }
+        }
+    }
     function menuInit() {
         if (document.querySelector(".icon-burger")) document.addEventListener("click", (function(e) {
             if (bodyLockStatus && e.target.closest(".icon-burger")) {
@@ -236,7 +336,7 @@
                 document.documentElement.classList.toggle("menu-open");
                 if (window.matchMedia("(max-width: 47.99875em)").matches) if (!document.documentElement.classList.contains("menu-open")) {
                     const submenu = document.querySelector(`.submenu-catalog._open`);
-                    submenu.classList.remove("_open");
+                    submenu ? submenu.classList.remove("_open") : null;
                 }
             }
         }));
@@ -246,6 +346,23 @@
             const showMoreBlocks = document.querySelectorAll("[data-showmore]");
             let showMoreBlocksRegular;
             let mdQueriesArray;
+            const shortText = (text, maxLength) => {
+                const regex = /<\/?[a-zA-Z0-9]+[^>]*>|.|\s+/g;
+                let length = 0;
+                let result = "";
+                while (length < maxLength) {
+                    const match = regex.exec(text);
+                    if (!match) break;
+                    const token = match[0];
+                    if (token.startsWith("<") || /\s+/.test(token)) result += token; else {
+                        result += token;
+                        length += token.length;
+                    }
+                }
+                if (length < text.length) result += "...";
+                return result;
+            };
+            const saveText = [];
             if (showMoreBlocks.length) {
                 showMoreBlocksRegular = Array.from(showMoreBlocks).filter((function(item, index, self) {
                     return !item.dataset.showmoreMedia;
@@ -279,14 +396,28 @@
                 let showMoreButton = showMoreBlock.querySelectorAll("[data-showmore-button]");
                 showMoreContent = Array.from(showMoreContent).filter((item => item.closest("[data-showmore]") === showMoreBlock))[0];
                 showMoreButton = Array.from(showMoreButton).filter((item => item.closest("[data-showmore]") === showMoreBlock))[0];
+                const maxLenght = parseInt(showMoreContent.dataset.maxLength);
+                if (maxLenght) {
+                    saveText.push({
+                        fullText: showMoreContent.innerHTML,
+                        get shortText() {
+                            return shortText(this.fullText, maxLenght);
+                        }
+                    });
+                    const index = saveText.length - 1;
+                    !showMoreContent.dataset.moreId ? showMoreContent.dataset.moreId = index : null;
+                }
                 const hiddenHeight = getHeight(showMoreBlock, showMoreContent);
                 if (matchMedia.matches || !matchMedia) if (hiddenHeight < getOriginalHeight(showMoreContent)) {
                     _slideUp(showMoreContent, 0, showMoreBlock.classList.contains("_showmore-active") ? getOriginalHeight(showMoreContent) : hiddenHeight);
+                    showMoreContent.dataset.maxLength ? showMoreContent.innerHTML = saveText[showMoreContent.dataset.moreId].shortText : null;
                     showMoreButton.hidden = false;
                 } else {
+                    showMoreContent.dataset.maxLength ? showMoreContent.innerHTML = saveText[showMoreContent.dataset.moreId].fullText : null;
                     _slideDown(showMoreContent, 0, hiddenHeight);
                     showMoreButton.hidden = true;
                 } else {
+                    showMoreContent.dataset.maxLength ? showMoreContent.innerHTML = saveText[showMoreContent.dataset.moreId].fullText : null;
                     _slideDown(showMoreContent, 0, hiddenHeight);
                     showMoreButton.hidden = true;
                 }
@@ -309,12 +440,17 @@
                     rowGap ? hiddenHeight += (showMoreTypeValue - 1) * rowGap : null;
                 } else {
                     const showMoreTypeValue = showMoreContent.dataset.showmoreContent ? showMoreContent.dataset.showmoreContent : 150;
-                    hiddenHeight = showMoreTypeValue;
+                    if (showMoreContent.dataset.maxLength) {
+                        showMoreContent.dataset.maxLength ? showMoreContent.innerHTML = saveText[showMoreContent.dataset.moreId].shortText : null;
+                        showMoreContent.style.height = "auto";
+                        hiddenHeight = showMoreContent.offsetHeight;
+                    } else hiddenHeight = showMoreTypeValue;
                 }
                 return hiddenHeight;
             }
             function getOriginalHeight(showMoreContent) {
                 let parentHidden;
+                showMoreContent.dataset.maxLength ? showMoreContent.innerHTML = saveText[showMoreContent.dataset.moreId].fullText : null;
                 let hiddenHeight = showMoreContent.offsetHeight;
                 showMoreContent.style.removeProperty("height");
                 if (showMoreContent.closest(`[hidden]`)) {
@@ -334,10 +470,19 @@
                         const showMoreButton = targetEvent.closest("[data-showmore-button]");
                         const showMoreBlock = showMoreButton.closest("[data-showmore]");
                         const showMoreContent = showMoreBlock.querySelector("[data-showmore-content]");
-                        const showMoreSpeed = showMoreBlock.dataset.showmoreButton ? showMoreBlock.dataset.showmoreButton : "500";
-                        const hiddenHeight = getHeight(showMoreBlock, showMoreContent);
+                        const showMoreSpeed = showMoreBlock.dataset.showmoreButton ? showMoreBlock.dataset.showmoreButton : 500;
+                        const hiddenHeigth = getHeight(showMoreBlock, showMoreContent);
                         if (!showMoreContent.classList.contains("_slide")) {
-                            showMoreBlock.classList.contains("_showmore-active") ? _slideUp(showMoreContent, showMoreSpeed, hiddenHeight) : _slideDown(showMoreContent, showMoreSpeed, hiddenHeight);
+                            if (showMoreBlock.classList.contains("_showmore-active")) if (showMoreContent.dataset.maxLength) {
+                                showMoreContent.innerHTML = saveText[showMoreContent.dataset.moreId].fullText;
+                                _slideUp(showMoreContent, showMoreSpeed, hiddenHeigth);
+                                setTimeout((() => {
+                                    showMoreContent.innerHTML = saveText[showMoreContent.dataset.moreId].shortText;
+                                }), showMoreSpeed ? showMoreSpeed : 500);
+                            } else _slideUp(showMoreContent, showMoreSpeed, hiddenHeigth); else {
+                                showMoreContent.dataset.maxLength ? showMoreContent.innerHTML = saveText[showMoreContent.dataset.moreId].fullText : null;
+                                _slideDown(showMoreContent, showMoreSpeed, hiddenHeigth);
+                            }
                             showMoreBlock.classList.toggle("_showmore-active");
                         }
                     }
@@ -809,7 +954,7 @@
         selectBuild(originalSelect) {
             const selectItem = originalSelect.parentElement;
             selectItem.dataset.id = originalSelect.dataset.id;
-            originalSelect.dataset.classModif ? selectItem.classList.add(`select_${originalSelect.dataset.classModif}`) : null;
+            originalSelect.dataset.classModif ? selectItem.classList.add(`select--${originalSelect.dataset.classModif}`) : null;
             originalSelect.multiple ? selectItem.classList.add(this.selectClasses.classSelectMultiple) : selectItem.classList.remove(this.selectClasses.classSelectMultiple);
             originalSelect.hasAttribute("data-checkbox") && originalSelect.multiple ? selectItem.classList.add(this.selectClasses.classSelectCheckBox) : selectItem.classList.remove(this.selectClasses.classSelectCheckBox);
             this.setSelectTitleValue(selectItem, originalSelect);
@@ -2566,55 +2711,167 @@
         target.noUiSlider = api;
         return api;
     }
-    document.addEventListener("click", (function(e) {
-        const target = e.target;
-        if (target.closest(".search__icon")) {
-            target.parentElement.classList.toggle("_active");
-            bodyLockToggle();
-        }
-        if (target.closest(".search__back")) {
-            target.closest(".search ").classList.remove("_active");
-            bodyUnlock();
-        }
-    }));
-    function openCatalogPc() {
-        const catalogList = document.querySelector(".catalog-header__list");
-        if (catalogList) catalogList.addEventListener("click", (function(e) {
+    window.addEventListener("load", (function(e) {
+        document.addEventListener("click", (function(e) {
             const target = e.target;
-            const arrowParent = target.closest(".catalog-header__item");
-            const isArrow = target.closest(".catalog-header__arrow");
-            const openItem = document.querySelector(".catalog-header__item._open");
-            if (isArrow) {
-                const isOpen = arrowParent.classList.contains("_open");
-                if (isOpen) {
-                    arrowParent.classList.remove("_open");
-                    bodyUnlock();
-                } else {
-                    if (openItem) openItem.classList.remove("_open");
-                    arrowParent.classList.add("_open");
-                    bodyLock();
-                }
-            } else if (openItem && !arrowParent) {
-                openItem.classList.remove("_open");
+            if (target.closest(".search__icon")) {
+                target.parentElement.classList.toggle("_active");
+                bodyLockToggle();
+            }
+            if (target.closest(".search__back")) {
+                target.closest(".search ").classList.remove("_active");
                 bodyUnlock();
             }
         }));
-    }
-    function openCatalogMob() {
-        const catalogList = document.querySelector(".catalog-header__list");
-        if (catalogList) catalogList.addEventListener("click", (function(e) {
-            const target = e.target;
-            const catalogItem = target.closest(".catalog-header__item");
-            const itemId = catalogItem.hasAttribute("data-catalog-item") ? catalogItem.dataset.catalogItem : null;
-            const submenu = document.querySelector(`.submenu-catalog[data-catalog-sub ='${itemId}']`);
-            if (target.closest(".catalog-header__link") || target.closest(".catalog-header__arrow")) {
-                e.preventDefault();
-                if (submenu) submenu.classList.add("_open");
-            }
-            if (target.closest(".submenu-catalog__back")) submenu.classList.remove("_open");
-        }));
-    }
-    if (window.matchMedia("(min-width: 767.98px)").matches) openCatalogPc(); else openCatalogMob();
+        function openCatalogPc() {
+            const catalogList = document.querySelector(".catalog-header__list");
+            if (catalogList) catalogList.addEventListener("click", (function(e) {
+                const target = e.target;
+                const arrowParent = target.closest(".catalog-header__item");
+                const isArrow = target.closest(".catalog-header__arrow");
+                const openItem = document.querySelector(".catalog-header__item._open");
+                if (isArrow) {
+                    const isOpen = arrowParent.classList.contains("_open");
+                    if (isOpen) {
+                        arrowParent.classList.remove("_open");
+                        bodyUnlock();
+                    } else {
+                        if (openItem) openItem.classList.remove("_open");
+                        arrowParent.classList.add("_open");
+                        bodyLock();
+                    }
+                } else if (openItem && !arrowParent) {
+                    openItem.classList.remove("_open");
+                    bodyUnlock();
+                }
+            }));
+        }
+        function openCatalogMob() {
+            const catalogList = document.querySelector(".catalog-header__list");
+            if (catalogList) catalogList.addEventListener("click", (function(e) {
+                const target = e.target;
+                const catalogItem = target.closest(".catalog-header__item");
+                const itemId = catalogItem.hasAttribute("data-catalog-item") ? catalogItem.dataset.catalogItem : null;
+                const submenu = document.querySelector(`.submenu-catalog[data-catalog-sub ='${itemId}']`);
+                if (target.closest(".catalog-header__link") || target.closest(".catalog-header__arrow")) {
+                    e.preventDefault();
+                    if (submenu) submenu.classList.add("_open");
+                }
+                if (target.closest(".submenu-catalog__back")) submenu.classList.remove("_open");
+            }));
+        }
+        if (window.matchMedia("(min-width: 767.98px)").matches) openCatalogPc(); else openCatalogMob();
+        function initialize() {
+            const stylesMap = [ {
+                featureType: "landscape.man_made",
+                elementType: "geometry",
+                stylers: [ {
+                    color: "#f7f1df"
+                } ]
+            }, {
+                featureType: "landscape.natural",
+                elementType: "geometry",
+                stylers: [ {
+                    color: "#d0e3b4"
+                } ]
+            }, {
+                featureType: "landscape.natural.terrain",
+                elementType: "geometry",
+                stylers: [ {
+                    visibility: "off"
+                } ]
+            }, {
+                featureType: "poi",
+                elementType: "labels",
+                stylers: [ {
+                    visibility: "off"
+                } ]
+            }, {
+                featureType: "poi.business",
+                elementType: "all",
+                stylers: [ {
+                    visibility: "off"
+                } ]
+            }, {
+                featureType: "poi.medical",
+                elementType: "geometry",
+                stylers: [ {
+                    color: "#fbd3da"
+                } ]
+            }, {
+                featureType: "poi.park",
+                elementType: "geometry",
+                stylers: [ {
+                    color: "#bde6ab"
+                } ]
+            }, {
+                featureType: "road",
+                elementType: "geometry.stroke",
+                stylers: [ {
+                    visibility: "off"
+                } ]
+            }, {
+                featureType: "road",
+                elementType: "labels",
+                stylers: [ {
+                    visibility: "off"
+                } ]
+            }, {
+                featureType: "road.highway",
+                elementType: "geometry.fill",
+                stylers: [ {
+                    color: "#ffe15f"
+                } ]
+            }, {
+                featureType: "road.highway",
+                elementType: "geometry.stroke",
+                stylers: [ {
+                    color: "#efd151"
+                } ]
+            }, {
+                featureType: "road.arterial",
+                elementType: "geometry.fill",
+                stylers: [ {
+                    color: "#ffffff"
+                } ]
+            }, {
+                featureType: "road.local",
+                elementType: "geometry.fill",
+                stylers: [ {
+                    color: "black"
+                } ]
+            }, {
+                featureType: "transit.station.airport",
+                elementType: "geometry.fill",
+                stylers: [ {
+                    color: "#cfb2db"
+                } ]
+            }, {
+                featureType: "water",
+                elementType: "geometry",
+                stylers: [ {
+                    color: "#a2daf2"
+                } ]
+            } ];
+            let myLatlng = new google.maps.LatLng(47.234535, 31.972561);
+            const markerLatlng = new google.maps.LatLng(46.93352220603647, 31.901939648530522);
+            if (window.matchMedia("(max-width: 61.99875em)").matches) myLatlng = new google.maps.LatLng(46.294753, 31.862739);
+            const myOptions = {
+                zoom: 8,
+                center: myLatlng,
+                styles: stylesMap,
+                zoomControlOptions: {
+                    position: google.maps.ControlPosition.RIGHT_CENTER
+                }
+            };
+            const map = new google.maps.Map(document.querySelector("[data-map]"), myOptions);
+            new google.maps.Marker({
+                map,
+                position: markerLatlng
+            });
+        }
+        initialize();
+    }));
     function rangeInit() {
         const priceSlider = document.querySelector("#main-range");
         const creditSumRange = document.querySelector("#credit-sum-range");
@@ -2679,7 +2936,6 @@
                         let value = getNum(input.value);
                         if (value.length) {
                             const result = creditSum - value;
-                            console.log(creditSum);
                             initialPrice.textContent = format.to(+value);
                             initialPrice.classList.add("_active");
                             if (creditSum) {
@@ -6470,7 +6726,7 @@
             },
             on: {}
         });
-        if (window.matchMedia("(max-width: 61.99875em)").matches) if (document.querySelector(".feedback__slider")) new swiper_core_Swiper(".feedback__slider", {
+        if (document.querySelector(".feedback__slider")) if (window.matchMedia("(max-width: 61.99875em)").matches) new swiper_core_Swiper(".feedback__slider", {
             modules: [],
             observer: true,
             observeParents: true,
@@ -6479,7 +6735,7 @@
             speed: 800,
             breakpoints: {
                 320: {
-                    slidesPerView: 1.2,
+                    slidesPerView: 1.1,
                     spaceBetween: 10
                 },
                 600: {
@@ -6488,6 +6744,39 @@
                 768: {
                     slidesPerView: 2.5,
                     spaceBetween: 20
+                }
+            },
+            on: {}
+        });
+        if (document.querySelector(".blog__slider")) new swiper_core_Swiper(".blog__slider", {
+            modules: [ Navigation ],
+            observer: true,
+            observeParents: true,
+            slidesPerView: 4,
+            spaceBetween: 30,
+            speed: 800,
+            navigation: {
+                prevEl: ".arrow--blog.arrow--prev",
+                nextEl: ".arrow--blog.arrow--next"
+            },
+            breakpoints: {
+                320: {
+                    slidesPerView: 1.1,
+                    spaceBetween: 10
+                },
+                480: {
+                    slidesPerView: 1.5,
+                    spaceBetween: 10
+                },
+                600: {
+                    slidesPerView: 2
+                },
+                800: {
+                    slidesPerView: 3,
+                    spaceBetween: 20
+                },
+                1200: {
+                    slidesPerView: 4
                 }
             },
             on: {}
@@ -6626,14 +6915,16 @@
                         rel: 0
                     }
                 });
-                playButton.addEventListener("click", (function() {
+                if (playButton) playButton.addEventListener("click", (function() {
                     player.playVideo();
                     videoParent.classList.add("_play");
                 }));
             }));
         }), false);
     }
-    loadYoutubeVideo();
+    window.addEventListener("load", (function(e) {
+        loadYoutubeVideo();
+    }));
     class DynamicAdapt {
         constructor(type) {
             this.type = type;
@@ -6722,6 +7013,7 @@
     isWebp();
     menuInit();
     spollers();
+    tabs();
     showMore();
     formFieldsInit({
         viewPass: false,
