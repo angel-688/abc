@@ -6888,43 +6888,6 @@
             }));
         }
     }), 0);
-    let ready = false;
-    function loadYoutubeVideo() {
-        window.onYouTubeIframeAPIReady = function() {
-            document.dispatchEvent(new CustomEvent("onYouTubeIframeAPIReady", {}));
-        };
-        if (ready == false) {
-            let tag = document.createElement("script");
-            tag.src = "https://www.youtube.com/iframe_api";
-            let firstScriptTag = document.getElementsByTagName("script")[0];
-            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-            ready = true;
-        }
-        const videos = document.querySelectorAll("[data-youtube-video]");
-        document.addEventListener("onYouTubeIframeAPIReady", (function(e) {
-            if (videos.length) videos.forEach((video => {
-                let player;
-                const videoParent = video.parentElement;
-                const playButton = videoParent.querySelector("[data-youtube-play]");
-                player = new YT.Player(video, {
-                    width: "100%",
-                    height: "100%",
-                    videoId: video.dataset.youtubeVideo,
-                    playerVars: {
-                        autoplay: 0,
-                        rel: 0
-                    }
-                });
-                if (playButton) playButton.addEventListener("click", (function() {
-                    player.playVideo();
-                    videoParent.classList.add("_play");
-                }));
-            }));
-        }), false);
-    }
-    window.addEventListener("load", (function(e) {
-        loadYoutubeVideo();
-    }));
     class DynamicAdapt {
         constructor(type) {
             this.type = type;
