@@ -7589,6 +7589,9 @@
                         slidesPerView: 1,
                         spaceBetween: 30,
                         speed: 800,
+                        thumbs: {
+                            swiper: thumbs[index]
+                        },
                         navigation: {
                             prevEl: ".tabs__arrow--prev",
                             nextEl: ".tabs__arrow--next"
@@ -7596,7 +7599,10 @@
                         breakpoints: {
                             320: {
                                 slidesPerView: 1.1,
-                                spaceBetween: 10
+                                spaceBetween: 10,
+                                thumbs: {
+                                    swiper: null
+                                }
                             },
                             768: {
                                 slidesPerView: 1.3
