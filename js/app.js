@@ -728,23 +728,6 @@
                 const showMoreBlocks = document.querySelectorAll("[data-showmore]");
                 let showMoreBlocksRegular;
                 let mdQueriesArray;
-                const shortText = (text, maxLength) => {
-                    const regex = /<\/?[a-zA-Z0-9]+[^>]*>|.|\s+/g;
-                    let length = 0;
-                    let result = "";
-                    while (length < maxLength) {
-                        const match = regex.exec(text);
-                        if (!match) break;
-                        const token = match[0];
-                        if (token.startsWith("<") || /\s+/.test(token)) result += token; else {
-                            result += token;
-                            length += token.length;
-                        }
-                    }
-                    if (length < text.length) result += "...";
-                    return result;
-                };
-                const saveText = [];
                 if (showMoreBlocks.length) {
                     showMoreBlocksRegular = Array.from(showMoreBlocks).filter((function(item, index, self) {
                         return !item.dataset.showmoreMedia;
@@ -778,28 +761,14 @@
                     let showMoreButton = showMoreBlock.querySelectorAll("[data-showmore-button]");
                     showMoreContent = Array.from(showMoreContent).filter((item => item.closest("[data-showmore]") === showMoreBlock))[0];
                     showMoreButton = Array.from(showMoreButton).filter((item => item.closest("[data-showmore]") === showMoreBlock))[0];
-                    const maxLenght = parseInt(showMoreContent.dataset.maxLength);
-                    if (maxLenght) {
-                        saveText.push({
-                            fullText: showMoreContent.innerHTML,
-                            get shortText() {
-                                return shortText(this.fullText, maxLenght);
-                            }
-                        });
-                        const index = saveText.length - 1;
-                        !showMoreContent.dataset.moreId ? showMoreContent.dataset.moreId = index : null;
-                    }
                     const hiddenHeight = getHeight(showMoreBlock, showMoreContent);
                     if (matchMedia.matches || !matchMedia) if (hiddenHeight < getOriginalHeight(showMoreContent)) {
                         _slideUp(showMoreContent, 0, showMoreBlock.classList.contains("_showmore-active") ? getOriginalHeight(showMoreContent) : hiddenHeight);
-                        showMoreContent.dataset.maxLength ? showMoreContent.innerHTML = saveText[showMoreContent.dataset.moreId].shortText : null;
                         showMoreButton.hidden = false;
                     } else {
-                        showMoreContent.dataset.maxLength ? showMoreContent.innerHTML = saveText[showMoreContent.dataset.moreId].fullText : null;
                         _slideDown(showMoreContent, 0, hiddenHeight);
                         showMoreButton.hidden = true;
                     } else {
-                        showMoreContent.dataset.maxLength ? showMoreContent.innerHTML = saveText[showMoreContent.dataset.moreId].fullText : null;
                         _slideDown(showMoreContent, 0, hiddenHeight);
                         showMoreButton.hidden = true;
                     }
@@ -822,17 +791,12 @@
                         rowGap ? hiddenHeight += (showMoreTypeValue - 1) * rowGap : null;
                     } else {
                         const showMoreTypeValue = showMoreContent.dataset.showmoreContent ? showMoreContent.dataset.showmoreContent : 150;
-                        if (showMoreContent.dataset.maxLength) {
-                            showMoreContent.dataset.maxLength ? showMoreContent.innerHTML = saveText[showMoreContent.dataset.moreId].shortText : null;
-                            showMoreContent.style.height = "auto";
-                            hiddenHeight = showMoreContent.offsetHeight;
-                        } else hiddenHeight = showMoreTypeValue;
+                        hiddenHeight = showMoreTypeValue;
                     }
                     return hiddenHeight;
                 }
                 function getOriginalHeight(showMoreContent) {
                     let parentHidden;
-                    showMoreContent.dataset.maxLength ? showMoreContent.innerHTML = saveText[showMoreContent.dataset.moreId].fullText : null;
                     let hiddenHeight = showMoreContent.offsetHeight;
                     showMoreContent.style.removeProperty("height");
                     if (showMoreContent.closest(`[hidden]`)) {
@@ -852,19 +816,10 @@
                             const showMoreButton = targetEvent.closest("[data-showmore-button]");
                             const showMoreBlock = showMoreButton.closest("[data-showmore]");
                             const showMoreContent = showMoreBlock.querySelector("[data-showmore-content]");
-                            const showMoreSpeed = showMoreBlock.dataset.showmoreButton ? showMoreBlock.dataset.showmoreButton : 500;
-                            const hiddenHeigth = getHeight(showMoreBlock, showMoreContent);
+                            const showMoreSpeed = showMoreBlock.dataset.showmoreButton ? showMoreBlock.dataset.showmoreButton : "500";
+                            const hiddenHeight = getHeight(showMoreBlock, showMoreContent);
                             if (!showMoreContent.classList.contains("_slide")) {
-                                if (showMoreBlock.classList.contains("_showmore-active")) if (showMoreContent.dataset.maxLength) {
-                                    showMoreContent.innerHTML = saveText[showMoreContent.dataset.moreId].fullText;
-                                    _slideUp(showMoreContent, showMoreSpeed, hiddenHeigth);
-                                    setTimeout((() => {
-                                        showMoreContent.innerHTML = saveText[showMoreContent.dataset.moreId].shortText;
-                                    }), showMoreSpeed ? showMoreSpeed : 500);
-                                } else _slideUp(showMoreContent, showMoreSpeed, hiddenHeigth); else {
-                                    showMoreContent.dataset.maxLength ? showMoreContent.innerHTML = saveText[showMoreContent.dataset.moreId].fullText : null;
-                                    _slideDown(showMoreContent, showMoreSpeed, hiddenHeigth);
-                                }
+                                showMoreBlock.classList.contains("_showmore-active") ? _slideUp(showMoreContent, showMoreSpeed, hiddenHeight) : _slideDown(showMoreContent, showMoreSpeed, hiddenHeight);
                                 showMoreBlock.classList.toggle("_showmore-active");
                             }
                         }
@@ -3143,117 +3098,6 @@
                 }));
             }
             if (window.matchMedia("(min-width: 767.98px)").matches) openCatalogPc(); else openCatalogMob();
-            const mapObj = document.querySelector("[data-map]");
-            function initialize() {
-                const stylesMap = [ {
-                    featureType: "landscape.man_made",
-                    elementType: "geometry",
-                    stylers: [ {
-                        color: "#f7f1df"
-                    } ]
-                }, {
-                    featureType: "landscape.natural",
-                    elementType: "geometry",
-                    stylers: [ {
-                        color: "#d0e3b4"
-                    } ]
-                }, {
-                    featureType: "landscape.natural.terrain",
-                    elementType: "geometry",
-                    stylers: [ {
-                        visibility: "off"
-                    } ]
-                }, {
-                    featureType: "poi",
-                    elementType: "labels",
-                    stylers: [ {
-                        visibility: "off"
-                    } ]
-                }, {
-                    featureType: "poi.business",
-                    elementType: "all",
-                    stylers: [ {
-                        visibility: "off"
-                    } ]
-                }, {
-                    featureType: "poi.medical",
-                    elementType: "geometry",
-                    stylers: [ {
-                        color: "#fbd3da"
-                    } ]
-                }, {
-                    featureType: "poi.park",
-                    elementType: "geometry",
-                    stylers: [ {
-                        color: "#bde6ab"
-                    } ]
-                }, {
-                    featureType: "road",
-                    elementType: "geometry.stroke",
-                    stylers: [ {
-                        visibility: "off"
-                    } ]
-                }, {
-                    featureType: "road",
-                    elementType: "labels",
-                    stylers: [ {
-                        visibility: "off"
-                    } ]
-                }, {
-                    featureType: "road.highway",
-                    elementType: "geometry.fill",
-                    stylers: [ {
-                        color: "#ffe15f"
-                    } ]
-                }, {
-                    featureType: "road.highway",
-                    elementType: "geometry.stroke",
-                    stylers: [ {
-                        color: "#efd151"
-                    } ]
-                }, {
-                    featureType: "road.arterial",
-                    elementType: "geometry.fill",
-                    stylers: [ {
-                        color: "#ffffff"
-                    } ]
-                }, {
-                    featureType: "road.local",
-                    elementType: "geometry.fill",
-                    stylers: [ {
-                        color: "black"
-                    } ]
-                }, {
-                    featureType: "transit.station.airport",
-                    elementType: "geometry.fill",
-                    stylers: [ {
-                        color: "#cfb2db"
-                    } ]
-                }, {
-                    featureType: "water",
-                    elementType: "geometry",
-                    stylers: [ {
-                        color: "#a2daf2"
-                    } ]
-                } ];
-                let myLatlng = new google.maps.LatLng(47.234535, 31.972561);
-                const markerLatlng = new google.maps.LatLng(46.93352220603647, 31.901939648530522);
-                if (window.matchMedia("(max-width: 61.99875em)").matches) myLatlng = new google.maps.LatLng(46.294753, 31.862739);
-                const myOptions = {
-                    zoom: 8,
-                    center: myLatlng,
-                    styles: stylesMap,
-                    zoomControlOptions: {
-                        position: google.maps.ControlPosition.RIGHT_CENTER
-                    }
-                };
-                const map = new google.maps.Map(mapObj, myOptions);
-                new google.maps.Marker({
-                    map,
-                    position: markerLatlng
-                });
-            }
-            if (mapObj) initialize();
         }));
         function rangeInit() {
             const priceSlider = document.querySelector("#main-range");

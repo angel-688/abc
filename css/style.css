@@ -4588,9 +4588,18 @@ details summary::marker {
 }
 
 .location__map {
+  position: relative;
   width: 100%;
   min-height: 35.625rem;
   border-radius: 1.5625rem;
+}
+
+.location__map iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
 }
 
 .location__info {
